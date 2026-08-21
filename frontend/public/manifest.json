@@ -1,0 +1,15 @@
+{
+  "short_name": "Thrifto",
+  "name": "Thrifto | Premium Footwear",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0d0d0c",
+  "background_color": "#faf8f3"
+}
