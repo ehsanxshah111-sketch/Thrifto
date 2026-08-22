@@ -23,6 +23,18 @@
       "dest": "api/index.js"
     },
     {
+      "src": "/static/(.*)",
+      "dest": "/frontend/static/$1"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "/frontend/images/$1"
+    },
+    {
+      "src": "/asset-manifest.json",
+      "dest": "/frontend/asset-manifest.json"
+    },
+    {
       "handle": "filesystem"
     },
     {
