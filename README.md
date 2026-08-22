@@ -134,17 +134,66 @@ callout:
 ## 6. Product images
 Two ways to set a product's photo from the Admin > Products form:
 - **Upload your own** — the "Upload Product Photo" file picker sends the
-  image to the backend (`POST /api/upload`, admin-only), which saves it to
-  `backend/uploads/` and returns a URL that's used as the product's image.
-  This is how you'd add real photos of your own stock.
+  image to the backend (`POST /api/upload`, admin-only), which returns a
+  URL that's used as the product's image. Where the file actually lands
+  depends on the environment:
+  - **On Vercel**, once you enable Blob storage on the project (Project →
+    Storage → Create Database → Blob), Vercel sets a `BLOB_READ_WRITE_TOKEN`
+    environment variable automatically — the upload route detects it and
+    stores the image in Vercel Blob, which is persistent.
+  - **Locally / without Blob configured**, it falls back to saving the file
+    to `backend/uploads/`, same as before — nothing extra to set up for
+    local dev.
 - **Built-in illustrations** — six original flat-style SVG shoe drawings
   (not photographs) ship in `frontend/public/images/` as a quick fallback/
   placeholder option, matching the black & white theme.
 
-`backend/uploads/` is created automatically and is gitignored — back it up
-separately if you deploy, since it isn't part of version control.
+`backend/uploads/` is created automatically and is gitignored — it's only
+used as the local-dev fallback described above, and isn't part of version
+control.
 
 ## 7. Notes
 - `node_modules` are **not** included in this zip — run `npm install` in
   both `backend/` and `frontend/` as shown above.
 - Never commit your real `.env` file; only `.env.example` is included.
+
+## 8. Deploying to Vercel
+This repo is set up to deploy as a single Vercel project: the API runs as a
+serverless function and the React app is built and served as static files,
+both from the same domain.
+
+**Files involved:**
+- `api/index.js` — the serverless entry point; imports the Express app from
+  `backend/app.js`. Vercel routes matching requests here (see `vercel.json`).
+- `backend/app.js` — the actual Express app (routes, middleware). Used by
+  both `api/index.js` (Vercel) and `backend/server.js` (local/traditional
+  hosting) — same code, two entry points.
+- `vercel.json` — tells Vercel to build `api/index.js` as a Node function
+  and `frontend/` as a static React build, and routes `/api/*` and
+  `/uploads/*` to the function, everything else to the built frontend.
+- `package.json` (repo root) — lists the backend's runtime dependencies so
+  Vercel's Node builder can install them for the `/api` function.
+
+**Steps:**
+1. Push this repo to GitHub (or GitLab/Bitbucket).
+2. In Vercel, "Add New Project" → import the repo. Leave the Root Directory
+   as the repo root (where `vercel.json` lives) — do **not** point it at
+   `frontend/` or `backend/`.
+3. Under Project Settings → Environment Variables, add the same values you
+   used in `backend/.env`: `MONGO_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN`, and
+   optionally `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` if you plan to
+   run the seed script against the production database.
+4. For persistent product photo uploads, go to your project → Storage →
+   Create Database → **Blob**, and connect it to the project. Vercel adds a
+   `BLOB_READ_WRITE_TOKEN` environment variable automatically — no code
+   changes needed, `POST /api/upload` picks it up on its own (see section 6
+   above). If you skip this step, uploads will still "succeed" but the
+   files won't survive past the current request, since the serverless
+   filesystem is read-only outside `/tmp`.
+5. Deploy. Vercel builds both pieces automatically — no build command
+   overrides needed.
+6. To create the first admin account against your production database, run
+   the seed script locally with your production `MONGO_URI` in
+   `backend/.env` (`npm run seed` from `backend/`), then remove that
+   `.env` value again — you don't want production credentials sitting on
+   your machine longer than needed.
